@@ -1,0 +1,146 @@
+{
+ "ops": [
+  [
+   "s",
+   "wm.wins.web",
+   {
+    "g": {
+     "x": 132,
+     "y": 40,
+     "w": 920,
+     "h": 600
+    },
+    "z": 1,
+    "min": false,
+    "max": false
+   }
+  ],
+  [
+   "s",
+   "wm.z",
+   1
+  ],
+  [
+   "s",
+   "wm.focus",
+   "web"
+  ],
+  [
+   "s",
+   "app.web.tabs.t1",
+   {
+    "h": [
+     "vanta://news"
+    ],
+    "i": 0,
+    "s": 0
+   }
+  ],
+  [
+   "s",
+   "app.web.order",
+   [
+    "t1"
+   ]
+  ],
+  [
+   "s",
+   "app.web.cur",
+   "t1"
+  ],
+  [
+   "s",
+   "app.web.n",
+   1
+  ],
+  [
+   "s",
+   "wm.wins.web.g",
+   {
+    "x": 195,
+    "y": 69,
+    "w": 920,
+    "h": 600
+   }
+  ],
+  [
+   "s",
+   "app.web.tabs.t1.s",
+   420
+  ],
+  [
+   "p",
+   "app.term.lines",
+   "op@vanta:/home/op$ ls",
+   48
+  ],
+  [
+   "p",
+   "app.term.lines",
+   "readme.txt  jobs/  shards/  photos/  todo.txt",
+   48
+  ],
+  [
+   "p",
+   "app.term.lines",
+   "op@vanta:/home/op$ cd jobs",
+   48
+  ],
+  [
+   "s",
+   "app.term.cwd",
+   "/home/op/jobs"
+  ],
+  [
+   "s",
+   "app.term.input",
+   ""
+  ]
+ ],
+ "doc": {
+  "wm": {
+   "z": 1,
+   "focus": "web",
+   "wins": {
+    "web": {
+     "g": {
+      "x": 195,
+      "y": 69,
+      "w": 920,
+      "h": 600
+     },
+     "z": 1,
+     "min": false,
+     "max": false
+    }
+   }
+  },
+  "app": {
+   "web": {
+    "tabs": {
+     "t1": {
+      "h": [
+       "vanta://news"
+      ],
+      "i": 0,
+      "s": 420
+     }
+    },
+    "order": [
+     "t1"
+    ],
+    "cur": "t1",
+    "n": 1
+   },
+   "term": {
+    "lines": [
+     "op@vanta:/home/op$ ls",
+     "readme.txt  jobs/  shards/  photos/  todo.txt",
+     "op@vanta:/home/op$ cd jobs"
+    ],
+    "cwd": "/home/op/jobs",
+    "input": ""
+   }
+  }
+ }
+}

@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VANTA//OS</title>
+<link rel="stylesheet" href="os.css">
+<script>
+  // Outside the game (the offline preview in tests/, or a plain browser) there is
+  // no bridge: the preview's parent provides a mock server, otherwise a local
+  // stand-in makes this page its own operator with nothing behind it.
+  if (!window.Open77) {
+    if (window.parent !== window && window.parent.VantaMock) {
+      window.Open77 = window.parent.VantaMock.bridge(window);
+    } else {
+      window.Open77 = (function () {
+        const handlers = {};
+        const fire = (n, p) => (handlers[n] || []).forEach((h) => h(p));
+        return {
+          on(n, h) { (handlers[n] = handlers[n] || []).push(h); return () => {}; },
+          emit(n) {
+            if (n !== "os:ready") return;
+            setTimeout(() => {
+              fire("os:hello", { me: 1, name: "local" });
+              fire("os:ctl", { op: 1, name: "LOCAL", reqs: [], idleMs: 15000, now: 0 });
+              fire("os:snap", { d: JSON.stringify({ rev: 0, now: 100000, unix: Date.now() / 1000,
+                doc: { sys: { power: true, bootAt: 0, vault: false, log: true, clock: 1 }, wm: { z: 0, focus: "", wins: {} }, app: {}, hack: { st: "idle", id: 0 } } }) });
+            }, 50);
+          },
+        };
+      })();
+    }
+  }
+</script>
+</head>
+<body>
+<div id="screen">
+  <div id="desk">
+    <div id="wall" class="wall wall-circuit"><div class="brand">VANTA</div></div>
+    <div id="clockw"></div>
+    <div id="statusw"></div>
+    <div id="wins"></div>
+    <div id="dock"></div>
+    <div id="bar">
+      <div class="start"></div>
+      <div class="tasks"></div>
+      <div class="chip"></div>
+      <div class="tray"><div class="spark"></div><span class="net"></span><span class="vol"></span><span class="clock">--:--</span></div>
+    </div>
+    <div id="menu" class="hidden"></div>
+    <div id="banner" class="hidden"></div>
+    <div id="toast" class="hidden"></div>
+    <div class="scanlines"></div>
+  </div>
+  <div id="boot" class="hidden"></div>
+  <div id="standby" class="hidden"></div>
+</div>
+<!-- Outside #screen and fixed: drawn in the same viewport coordinates the clicks use. -->
+<div id="cursor" class="hidden"></div>
+<script src="core.js"></script>
+<script src="icons.js"></script>
+<script src="sites.js"></script>
+<script src="apps.js"></script>
+<script src="os.js"></script>
+</body>
+</html>

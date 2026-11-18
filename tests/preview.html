@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>VANTA//OS preview</title>
+<style>
+  body { margin: 0; background: #111; color: #ccc; font: 13px system-ui, sans-serif; }
+  .row { display: flex; gap: 12px; padding: 12px; flex-wrap: wrap; }
+  .pane { display: flex; flex-direction: column; gap: 6px; }
+  .frame { width: 800px; height: 450px; overflow: hidden; border: 1px solid #333; }
+  .frame iframe { width: 1600px; height: 900px; border: 0; transform: scale(0.5); transform-origin: 0 0; }
+  .bar { display: flex; gap: 6px; align-items: center; }
+  button { background: #222; color: #ddd; border: 1px solid #444; padding: 4px 10px; }
+  body.one .frame { width: 1600px; height: 900px; }
+  body.one .frame iframe { transform: none; }
+  body.one .pane.b, body.one .controls { display: none; }
+  body.one .row { padding: 0; }
+  body.one { overflow: hidden; }
+  body.one .pane .bar { display: none; }
+</style>
+</head>
+<body>
+<div class="row">
+  <div class="pane a"><div class="bar"><b>Player A</b><button onclick="VantaMock.use(1)">press E</button><button onclick="VantaMock.release()">leave</button></div>
+    <div class="frame"><iframe id="a" data-name="NOVA"></iframe></div></div>
+  <div class="pane b"><div class="bar"><b>Player B</b><button onclick="VantaMock.use(2)">press E</button></div>
+    <div class="frame"><iframe id="b" data-name="KAI"></iframe></div></div>
+</div>
+<div class="row controls"><span id="log"></span></div>
+<script src="../web/core.js"></script>
+<script src="../web/splice.js"></script>
+<script src="mock.js"></script>
+<script>
+  // ?scene=<name>&one=1 drives a scripted scene (used for the PR screenshots);
+  // ?view=b shows player B's page alone (the viewer's copy).
+  const q = new URLSearchParams(location.search);
+  if (q.get("one")) document.body.classList.add("one");
+  const a = document.getElementById("a");
+  const b = document.getElementById("b");
+  a.src = "../web/index.html";
+  b.src = "../web/index.html";
+  if (q.get("view") === "b") {
+    document.querySelector(".pane.a").style.display = "none";
+    document.querySelector(".pane.b").style.display = "flex";
+    document.querySelector(".pane.b .bar").style.display = "none";
+  }
+  const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+  const A = () => a.contentWindow.VantaOS;
+  async function until(fn, ms) {
+    for (let t = 0; t < (ms || 3000); t += 50) { const v = fn(); if (v) return v; await wait(50); }
+    return null;
+  }
+  async function clickWhen(win, sel) {
+    await until(() => win.document.querySelector(sel));
+    click(win, sel);
+  }
+  function click(win, sel) {
+    const el = win.document.querySelector(sel);
+    if (!el) throw new Error("no " + sel);
+    const r = el.getBoundingClientRect();
+    const o = { bubbles: true, clientX: r.left + r.width / 2, clientY: r.top + r.height / 2, button: 0 };
+    el.dispatchEvent(new win.MouseEvent("mousemove", o));
+    el.dispatchEvent(new win.MouseEvent("mousedown", o));
+    el.dispatchEvent(new win.MouseEvent("mouseup", o));
+    el.dispatchEvent(new win.MouseEvent("click", o));
+  }
+  function move(win, x, y) {
+    win.document.dispatchEvent(new win.MouseEvent("mousemove", { bubbles: true, clientX: x, clientY: y }));
+  }
+  async function scene(name) {
+    await wait(600);
+    VantaMock.use(1);
+    await wait(6400); // boot
+    const W = a.contentWindow;
+    const C = W.VantaCore;
+    const act = (ops) => A().ctx.act(ops);
+    const settle = () => wait(120);
+    if (name === "boot") return;
+    act(C.wm(A().state.doc, { t: "open", id: "files" }));
+    act(C.wm(A().state.doc, { t: "move", id: "files", x: 110, y: 40 }));
+    act(C.wm(A().state.doc, { t: "open", id: "notes" }));
+    act([["s", "app.notes.text", "Meet at the Afterlife, 23:00.\nBring the shard.\n\n- NOVA"]]);
+    act(C.wm(A().state.doc, { t: "move", id: "notes", x: 620, y: 300 }));
+    act(C.wm(A().state.doc, { t: "open", id: "calc" }));
+    act(C.wm(A().state.doc, { t: "move", id: "calc", x: 1180, y: 330 }));
+    await settle();
+    for (const k of ["1", "2", "8", "*", "6", "="]) click(W, '.calc [data-k="' + k + '"]');
+    act(C.wm(A().state.doc, { t: "open", id: "term" }));
+    act(C.wm(A().state.doc, { t: "move", id: "term", x: 150, y: 470 }));
+    act(C.term(A().state.doc, "neofetch", { user: "nova" }));
+    act(C.term(A().state.doc, "ls", { user: "nova" }));
+    act([["s", "app.term.input", "cat readme.txt"]]);
+    if (name === "scrollcheck") {
+      // Windows pushed to the edges (as far as the window manager allows), then
+      // the inputs focused the way a click focuses them: does any ancestor of
+      // the page scroll? (A scrolled ancestor shifts the drawn pointer away from
+      // where clicks land.)
+      for (const id of ["notes", "term", "web"]) act(C.wm(A().state.doc, { t: "open", id }));
+      await settle();
+      act(C.wm(A().state.doc, { t: "move", id: "notes", x: 1590, y: 600 }));
+      act(C.wm(A().state.doc, { t: "move", id: "term", x: 1400, y: 820 }));
+      act(C.wm(A().state.doc, { t: "move", id: "web", x: 1300, y: 700 }));
+      await settle();
+      move(W, 1590, 890);
+      for (const sel of [".notes textarea", ".term input", ".web .url"]) {
+        const el = W.document.querySelector(sel);
+        el.focus();
+        await wait(50);
+      }
+      const scrolled = [];
+      W.document.querySelectorAll("*").forEach((e) => {
+        if (e.scrollTop || e.scrollLeft) scrolled.push((e.id || e.className || e.tagName) + " top=" + e.scrollTop + " left=" + e.scrollLeft);
+      });
+      // Nothing scrolled: the pointer (drawn at ptr, in viewport coordinates) is where clicks land.
+      const ptr = A().state.ptr;
+      console.log("SCROLLCHECK window=" + W.scrollX + "," + W.scrollY + " scrolled=[" + scrolled.join(" | ") + "] ptr=" + ptr.x + "," + ptr.y + " pointer=1590,890");
+      return;
+    }
+    if (name === "desktop") {
+      move(W, 900, 520);
+      VantaMock.use(2);
+      return;
+    }
+    if (name === "web") {
+      act(C.wm(A().state.doc, { t: "open", id: "web" }));
+      act(C.wm(A().state.doc, { t: "move", id: "web", x: 300, y: 60 }));
+      await wait(300);
+      act(C.web(A().state.doc, { t: "go", url: "vanta://news" }));
+      await wait(400);
+      act(C.web(A().state.doc, { t: "scroll", y: 380 }));
+      act(C.web(A().state.doc, { t: "new", url: "vanta://market" }));
+      act(C.web(A().state.doc, { t: "select", tab: "t1" }));
+      move(W, 700, 400);
+      return;
+    }
+    if (name === "refused") {
+      act(C.wm(A().state.doc, { t: "open", id: "web" }));
+      act(C.wm(A().state.doc, { t: "move", id: "web", x: 300, y: 60 }));
+      await wait(300);
+      act(C.web(A().state.doc, { t: "go", url: "https://www.google.com" }));
+      return;
+    }
+    if (name === "splice" || name === "splice-end") {
+      act(C.wm(A().state.doc, { t: "open", id: "splice" }));
+      act(C.wm(A().state.doc, { t: "move", id: "splice", x: 300, y: 80 }));
+      await wait(200);
+      await clickWhen(W, '.sp [data-sp="new"]');
+      await until(() => W.document.querySelector(".sp .cell"));
+      const h = VantaMock.server.hack;
+      // Follow a solving walk: the generator's own solution is not exposed, so
+      // brute-force the best picks here (small grids).
+      const best = solve(h);
+      const steps = name === "splice" ? 3 : best.length;
+      for (let i = 0; i < steps; i++) {
+        const g = A().state.doc.wm.wins.splice.g;
+        const cell = best[i];
+        move(W, g.x + 67 + (cell % h.n) * 62, g.y + 196 + Math.floor(cell / h.n) * 52);
+        await clickWhen(W, '.sp .cell.on[data-i="' + cell + '"]');
+        await until(() => W.VantaCore.arr(A().state.doc.hack.picks).indexOf(cell) !== -1);
+        await wait(150);
+      }
+      const g = A().state.doc.wm.wins.splice.g;
+      const next = best[steps];
+      if (next !== undefined) move(W, g.x + 67 + (next % h.n) * 62, g.y + 196 + Math.floor(next / h.n) * 52);
+      VantaMock.use(2);
+    }
+  }
+  function solve(h) {
+    let best = [];
+    let bestScore = -1;
+    const picks = [];
+    const used = {};
+    function score() {
+      const buf = picks.map((c) => h.grid[c]).join(" ");
+      return h.pay.filter((p) => (" " + buf + " ").includes(" " + p.seq.join(" ") + " ")).length;
+    }
+    function dfs(mode, line) {
+      const s = score();
+      if (s > bestScore) { bestScore = s; best = picks.slice(); }
+      if (bestScore === h.pay.length || picks.length >= h.cap) return;
+      for (let i = 0; i < h.n; i++) {
+        const cell = mode === "row" ? line * h.n + i : i * h.n + line;
+        if (used[cell]) continue;
+        used[cell] = true; picks.push(cell);
+        dfs(mode === "row" ? "col" : "row", mode === "row" ? cell % h.n : Math.floor(cell / h.n));
+        picks.pop(); delete used[cell];
+        if (bestScore === h.pay.length) return;
+      }
+    }
+    dfs("row", 0);
+    return best;
+  }
+  // After a scene: are the operator's and the viewer's documents identical?
+  function canon(v) {
+    if (Array.isArray(v)) return v.map(canon);
+    if (v && typeof v === "object") {
+      const keys = Object.keys(v).sort();
+      if (keys.length === 0) return null; // {} and [] are the same empty list on the wire
+      const o = {};
+      for (const k of keys) o[k] = canon(v[k]);
+      return o;
+    }
+    return v;
+  }
+  async function compare() {
+    await wait(1500);
+    const da = JSON.stringify(canon(a.contentWindow.VantaOS.state.doc));
+    const db = JSON.stringify(canon(b.contentWindow.VantaOS.state.doc));
+    const ds = JSON.stringify(canon(VantaMock.server.doc));
+    console.log("SYNC CHECK operator==viewer " + (da === db) + " operator==server " + (da === ds) + " bytes=" + da.length);
+    if (da !== db) console.log("A=" + da + " B=" + db);
+  }
+  if (q.get("scene")) scene(q.get("scene")).then(compare).then(() => (document.title = "scene-ready")).catch((e) => { console.error("SCENE FAILED " + e.stack); VantaMock.server.log.push("scene failed: " + e.message); });
+  setInterval(() => (document.getElementById("log").textContent = VantaMock.server.log.slice(-4).join("  |  ")), 500);
+</script>
+</body>
+</html>
